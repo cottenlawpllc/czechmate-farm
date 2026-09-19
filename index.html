@@ -36,16 +36,24 @@
         
         .categories { padding: 4rem 2rem; max-width: 1200px; margin: 0 auto; }
         .categories h2 { font-family: 'Playfair Display', serif; font-size: 2rem; text-align: center; margin-bottom: 3rem; color: #228B22; }
-        .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; }
-        .category-card { background: #f9f9f9; border-radius: 12px; overflow: hidden; transition: transform 0.3s; }
-        .category-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
-        .category-card img { width: 100%; height: 200px; object-fit: cover; }
+        .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; }
+        .category-card { background: #f9f9f9; border-radius: 12px; overflow: hidden; transition: transform 0.3s; cursor: pointer; border: none; padding: 0; font: inherit; color: inherit; text-align: center; }
+        .category-card:hover, .category-card:focus-visible { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.15); outline: none; }
+        .category-card img { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .category-card .cat-placeholder { width: 100%; height: 200px; display: flex; align-items: center; justify-content: center; font-size: 5rem; background: linear-gradient(135deg, #e8f3e8, #d4e8d4); }
         .category-card h3 { padding: 1.25rem; font-size: 1.3rem; text-align: center; }
-        
+        .category-hint { text-align: center; color: #666; margin-top: -2rem; margin-bottom: 2.5rem; font-size: 0.95rem; }
+
         .products { background: #f5f5f5; padding: 4rem 2rem; }
         .products-container { max-width: 1200px; margin: 0 auto; }
         .products h2 { font-family: 'Playfair Display', serif; font-size: 2rem; text-align: center; margin-bottom: 0.5rem; color: #228B22; }
         .products .subtitle { text-align: center; color: #666; margin-bottom: 2rem; }
+        .filter-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-bottom: 2rem; }
+        .filter-bar button { background: white; border: 2px solid #228B22; color: #228B22; padding: 0.5rem 1.1rem; border-radius: 999px; font: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+        .filter-bar button:hover { background: #e8f3e8; }
+        .filter-bar button.active { background: #228B22; color: white; }
+        .product-group { margin-bottom: 2.5rem; }
+        .product-group h3.group-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: #228B22; margin-bottom: 1rem; padding-bottom: 0.4rem; border-bottom: 2px solid #cfe3cf; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
         .product-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .product-card img { width: 100%; height: 180px; object-fit: cover; }
@@ -126,18 +134,20 @@
     
     <section class="categories">
         <h2>What We Offer</h2>
+        <p class="category-hint">Tap a category to see what's in stock.</p>
         <div class="category-grid" id="categoryGrid">
-            <div class="category-card"><img src="/images/IMG_7197.jpg" alt="Hay" id="cat-hay-img"><h3>🌾 Hay</h3></div>
-            <div class="category-card"><img src="/images/IMG_8115.jpg" alt="Shavings" id="cat-shavings-img"><h3>🪵 Shavings</h3></div>
-            <div class="category-card"><img src="/images/IMG_9174.jpg" alt="Grain" id="cat-grain-img"><h3>🌽 Grain</h3></div>
+            <button type="button" class="category-card" data-slug="hay"><img src="/images/IMG_7197.jpg" alt="Hay"><h3>🌾 Hay</h3></button>
+            <button type="button" class="category-card" data-slug="shavings"><img src="/images/IMG_8115.jpg" alt="Shavings"><h3>🪵 Shavings</h3></button>
+            <button type="button" class="category-card" data-slug="grain"><img src="/images/IMG_9174.jpg" alt="Grain"><h3>🌽 Grain</h3></button>
         </div>
     </section>
-    
+
     <section class="products" id="products">
         <div class="products-container">
             <h2>Currently In Stock</h2>
             <p class="subtitle">Stop by the farm to pick up — inventory changes frequently!</p>
-            <div class="product-grid" id="productGrid"></div>
+            <div class="filter-bar" id="filterBar" style="display:none;"></div>
+            <div id="productGroups"></div>
             <div class="no-products" id="noProducts">
                 <p>Check back soon for current inventory!<br>Call <a href="tel:9193894380">(919) 389-4380</a> to ask what we have.</p>
             </div>
@@ -204,54 +214,169 @@
             }
         } catch(e) { console.warn('Supabase init failed:', e); }
         
+        // Built-in categories, used until the owner saves her own list in the admin.
+        var DEFAULT_CATEGORIES = [
+            { slug: 'hay', name: 'Hay', emoji: '🌾' },
+            { slug: 'shavings', name: 'Shavings', emoji: '🪵' },
+            { slug: 'grain', name: 'Grain', emoji: '🌽' }
+        ];
+        var DEFAULT_IMAGES = { hay: '/images/IMG_7197.jpg', shavings: '/images/IMG_8115.jpg', grain: '/images/IMG_9174.jpg' };
+        var OTHER = { slug: 'other', name: 'Other', emoji: '' };
+
+        var categories = DEFAULT_CATEGORIES.slice();
+        var categoryImages = {};
+        var products = [];
+        var activeFilter = null; // null = show everything
+
+        var categoryGrid = document.getElementById('categoryGrid');
+        var filterBar = document.getElementById('filterBar');
+        var productGroups = document.getElementById('productGroups');
+        var noProducts = document.getElementById('noProducts');
+        var productsSection = document.getElementById('products');
+
+        // The three static cards work even if the database never answers.
+        wireCategoryCards();
+
         if (!db) return;
 
-        // Load products
-        var grid = document.getElementById('productGrid');
-        var noProducts = document.getElementById('noProducts');
-        
-        db.from('products').select('*').eq('in_stock', true).order('created_at', { ascending: false }).then(function(result) {
-            if (result.error || !result.data || result.data.length === 0) {
-                if (noProducts) noProducts.style.display = 'block';
-                return;
-            }
-            var html = '';
-            result.data.forEach(function(p) {
-                html += '<div class="product-card">' +
-                    '<img src="' + (p.image_url || '/images/IMG_7197.jpg') + '" alt="' + escapeAttr(p.name) + '" onerror="this.src=\'/images/IMG_7197.jpg\'">' +
-                    '<div class="product-info">' +
-                    '<h3>' + escapeHtml(p.name) + '</h3>' +
-                    '<p>' + escapeHtml(p.description || '') + '</p>' +
-                    '<p class="price">' + escapeHtml(p.price || 'Call for pricing') + '</p>' +
-                    '</div></div>';
+        var categoriesLoaded = db.from('site_settings').select('key, value').like('key', 'cat%').then(function(result) {
+            if (result.error || !result.data) return;
+            result.data.forEach(function(row) {
+                if (row.key === 'categories') {
+                    try {
+                        var list = JSON.parse(row.value);
+                        if (Array.isArray(list) && list.length) {
+                            categories = list.filter(function(c) { return c && c.slug && c.name; });
+                        }
+                    } catch (e) { /* keep defaults */ }
+                } else {
+                    var m = /^cat_(.+)_image$/.exec(row.key);
+                    if (m && row.value) categoryImages[m[1]] = row.value;
+                }
             });
-            if (grid) grid.innerHTML = html;
-        }).catch(function(err) {
-            console.log('Products load error:', err.message);
-            if (noProducts) noProducts.style.display = 'block';
+        }).catch(function(e) { /* keep defaults */ });
+
+        var productsLoaded = db.from('products').select('*').eq('in_stock', true).order('created_at', { ascending: false }).then(function(result) {
+            products = (result.error || !result.data) ? [] : result.data;
+        }).catch(function(e) { products = []; });
+
+        Promise.all([categoriesLoaded, productsLoaded]).then(function() {
+            renderCategories();
+            renderProducts();
         });
 
-        // Load category images from site_settings
-        db.from('site_settings').select('key, value').in('key', ['cat_hay_image', 'cat_shavings_image', 'cat_grain_image']).then(function(result) {
-            if (!result.data) return;
-            result.data.forEach(function(s) {
-                if (s.key === 'cat_hay_image' && s.value) {
-                    var el = document.getElementById('cat-hay-img');
-                    if (el) el.src = s.value;
-                }
-                if (s.key === 'cat_shavings_image' && s.value) {
-                    var el = document.getElementById('cat-shavings-img');
-                    if (el) el.src = s.value;
-                }
-                if (s.key === 'cat_grain_image' && s.value) {
-                    var el = document.getElementById('cat-grain-img');
-                    if (el) el.src = s.value;
-                }
-            });
-        }).catch(function(e) { /* use defaults */ });
+        // --- Categories ("What We Offer") ---
 
-        function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-        function escapeAttr(str) { return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        function categoryImage(cat) {
+            return categoryImages[cat.slug] || DEFAULT_IMAGES[cat.slug] || null;
+        }
+
+        function categoryLabel(cat) {
+            return (cat.emoji ? escapeHtml(cat.emoji) + ' ' : '') + escapeHtml(cat.name);
+        }
+
+        function renderCategories() {
+            var html = '';
+            categories.forEach(function(cat) {
+                var img = categoryImage(cat);
+                html += '<button type="button" class="category-card" data-slug="' + escapeAttr(cat.slug) + '">' +
+                    (img
+                        ? '<img src="' + escapeAttr(img) + '" alt="' + escapeAttr(cat.name) + '" loading="lazy">'
+                        : '<div class="cat-placeholder" aria-hidden="true">' + escapeHtml(cat.emoji || '🏷️') + '</div>') +
+                    '<h3>' + categoryLabel(cat) + '</h3></button>';
+            });
+            categoryGrid.innerHTML = html;
+            wireCategoryCards();
+        }
+
+        function wireCategoryCards() {
+            var cards = categoryGrid.querySelectorAll('.category-card');
+            for (var i = 0; i < cards.length; i++) {
+                cards[i].addEventListener('click', function() {
+                    setFilter(this.getAttribute('data-slug'));
+                    productsSection.scrollIntoView({ behavior: 'smooth' });
+                });
+            }
+        }
+
+        // --- Products ("Currently In Stock") ---
+
+        function findCategory(slug) {
+            for (var i = 0; i < categories.length; i++) if (categories[i].slug === slug) return categories[i];
+            return null;
+        }
+
+        // Group in-stock products in category order, with anything unmatched under "Other".
+        function groupedProducts() {
+            var groups = [];
+            var used = {};
+            categories.forEach(function(cat) {
+                var items = products.filter(function(p) { return p.category === cat.slug; });
+                items.forEach(function(p) { used[p.id] = true; });
+                if (items.length) groups.push({ category: cat, items: items });
+            });
+            var leftovers = products.filter(function(p) { return !used[p.id]; });
+            if (leftovers.length) groups.push({ category: OTHER, items: leftovers });
+            return groups;
+        }
+
+        function setFilter(slug) {
+            activeFilter = slug;
+            renderProducts();
+        }
+
+        function renderProducts() {
+            var groups = groupedProducts();
+
+            if (!products.length) {
+                filterBar.style.display = 'none';
+                productGroups.innerHTML = '';
+                noProducts.style.display = 'block';
+                return;
+            }
+            noProducts.style.display = 'none';
+
+            // Filter buttons: All + each group that has something in stock.
+            var bar = '<button type="button" data-slug="" class="' + (activeFilter ? '' : 'active') + '">All</button>';
+            groups.forEach(function(g) {
+                bar += '<button type="button" data-slug="' + escapeAttr(g.category.slug) + '" class="' + (activeFilter === g.category.slug ? 'active' : '') + '">' + categoryLabel(g.category) + '</button>';
+            });
+            filterBar.innerHTML = bar;
+            filterBar.style.display = 'flex';
+            var buttons = filterBar.querySelectorAll('button');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].addEventListener('click', function() { setFilter(this.getAttribute('data-slug') || null); });
+            }
+
+            var visible = activeFilter ? groups.filter(function(g) { return g.category.slug === activeFilter; }) : groups;
+
+            if (!visible.length) {
+                var cat = findCategory(activeFilter) || OTHER;
+                productGroups.innerHTML = '<div class="no-products" style="display:block"><p>Nothing in ' + escapeHtml(cat.name) + ' right now. ' +
+                    'Call <a href="tel:9193894380">(919) 389-4380</a> to ask, or <a href="#products" id="showAllLink">see everything we have</a>.</p></div>';
+                document.getElementById('showAllLink').addEventListener('click', function(e) { e.preventDefault(); setFilter(null); });
+                return;
+            }
+
+            var html = '';
+            visible.forEach(function(g) {
+                html += '<div class="product-group"><h3 class="group-title">' + categoryLabel(g.category) + '</h3><div class="product-grid">';
+                g.items.forEach(function(p) {
+                    html += '<div class="product-card">' +
+                        '<img src="' + escapeAttr(p.image_url || '/images/IMG_7197.jpg') + '" alt="' + escapeAttr(p.name) + '" loading="lazy" onerror="this.onerror=null;this.src=\'/images/IMG_7197.jpg\'">' +
+                        '<div class="product-info">' +
+                        '<h3>' + escapeHtml(p.name) + '</h3>' +
+                        '<p>' + escapeHtml(p.description || '') + '</p>' +
+                        '<p class="price">' + escapeHtml(p.price || 'Call for pricing') + '</p>' +
+                        '</div></div>';
+                });
+                html += '</div></div>';
+            });
+            productGroups.innerHTML = html;
+        }
+
+        function escapeHtml(str) { var d = document.createElement('div'); d.textContent = String(str == null ? '' : str); return d.innerHTML; }
+        function escapeAttr(str) { return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
     })();
     </script>
 </body>

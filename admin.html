@@ -72,16 +72,26 @@
         .form-buttons { display: flex; gap: 0.5rem; }
         .form-buttons .btn { flex: 1; }
 
-        .cat-photo-row { margin-bottom: 1rem; }
-        .cat-photo-row label { margin-bottom: 0.5rem; }
-        .cat-photo-wrap { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-        .cat-photo-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; }
+        .cat-row { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; background: #f9f9f9; border-radius: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+        .cat-row.is-new { border: 2px dashed #228B22; }
+        .cat-photo-thumb { width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; cursor: pointer; background: #e8f3e8; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; flex-shrink: 0; }
         .cat-photo-thumb:hover { opacity: 0.8; }
+        .cat-fields { flex: 1; min-width: 200px; display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center; }
+        .cat-fields input { padding: 0.6rem; }
+        .cat-fields .cat-emoji { text-align: center; font-size: 1.3rem; }
+        .cat-fields .cat-photo-btn { grid-column: 1 / -1; justify-self: start; }
+        .cat-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
+        .cat-actions .btn { padding: 0.5rem 0.75rem; }
+        .cat-count { font-size: 0.8rem; color: #666; grid-column: 1 / -1; }
+        .emoji-picks { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.5rem 0 1rem; }
+        .emoji-picks button { font-size: 1.4rem; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 0.3rem 0.5rem; cursor: pointer; }
+        .emoji-picks button:hover { border-color: #228B22; }
+        .cat-badge { display: inline-block; background: #e8f3e8; color: #1a6b1a; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; font-weight: 600; margin-left: 0.4rem; }
 
         @media (max-width: 600px) {
             .product-item { flex-direction: column; text-align: center; }
             .product-item .actions { justify-content: center; }
-            .cat-photo-wrap { flex-direction: column; align-items: flex-start; }
+            .cat-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -111,37 +121,17 @@
             
             <div id="alert" class="alert" style="display: none;"></div>
             
-            <div class="card">
-                <h2>Category Photos</h2>
-                <p class="help-text" style="margin-bottom:1rem;">These appear on the homepage under "What We Offer." Tap a photo or the button to change it.</p>
-                <div class="cat-photo-row" id="catHayRow">
-                    <label>Hay</label>
-                    <div class="cat-photo-wrap">
-                        <img id="catHayPreview" src="/images/IMG_7197.jpg" alt="Hay" class="cat-photo-thumb">
-                        <input type="hidden" id="catHayImage" value="">
-                        <input type="file" id="catHayFile" accept="image/*" style="display:none">
-                        <button type="button" class="btn btn-sm btn-edit" id="catHayBtn">Change Photo</button>
-                    </div>
+            <div class="card" id="categoriesCard">
+                <h2>Categories ("What We Offer")</h2>
+                <p class="help-text" style="margin-bottom:0.75rem;">These are the big sections on the homepage. Each one has a symbol, a name, and a photo. Products you add go under one of these.</p>
+                <p class="help-text">Tap a symbol below to use it, or tap the symbol box and use the emoji key on your keyboard.</p>
+                <div class="emoji-picks" id="emojiPicks"></div>
+                <div id="categoryList"><div class="loading">Loading...</div></div>
+                <div class="form-buttons" style="margin-top:1rem;">
+                    <button type="button" class="btn btn-secondary" id="addCatBtn">+ Add Category</button>
+                    <button type="button" class="btn" id="saveCatBtn">Save Categories</button>
                 </div>
-                <div class="cat-photo-row" id="catShavingsRow">
-                    <label>Shavings</label>
-                    <div class="cat-photo-wrap">
-                        <img id="catShavingsPreview" src="/images/IMG_8115.jpg" alt="Shavings" class="cat-photo-thumb">
-                        <input type="hidden" id="catShavingsImage" value="">
-                        <input type="file" id="catShavingsFile" accept="image/*" style="display:none">
-                        <button type="button" class="btn btn-sm btn-edit" id="catShavingsBtn">Change Photo</button>
-                    </div>
-                </div>
-                <div class="cat-photo-row" id="catGrainRow">
-                    <label>Grain</label>
-                    <div class="cat-photo-wrap">
-                        <img id="catGrainPreview" src="/images/IMG_9174.jpg" alt="Grain" class="cat-photo-thumb">
-                        <input type="hidden" id="catGrainImage" value="">
-                        <input type="file" id="catGrainFile" accept="image/*" style="display:none">
-                        <button type="button" class="btn btn-sm btn-edit" id="catGrainBtn">Change Photo</button>
-                    </div>
-                </div>
-                <button class="btn btn-block" id="saveCatBtn" style="margin-top:1rem;">Save Category Photos</button>
+                <p class="help-text" style="margin-top:0.5rem;">Nothing changes on the website until you tap Save Categories.</p>
             </div>
 
             <div class="card" id="addProductCard">
@@ -155,11 +145,9 @@
                     <div class="form-group">
                         <label>Category</label>
                         <select id="category">
-                            <option value="hay">Hay</option>
-                            <option value="shavings">Shavings</option>
-                            <option value="grain">Grain</option>
                             <option value="other">Other</option>
                         </select>
+                        <p class="help-text">Need a new group? Add it in Categories above first.</p>
                     </div>
                     <div class="form-group">
                         <label>Description</label>
@@ -214,6 +202,19 @@
         
         var products = [];
 
+        // Built-in categories, used until the first save writes the owner's own list.
+        var DEFAULT_CATEGORIES = [
+            { slug: 'hay', name: 'Hay', emoji: '🌾' },
+            { slug: 'shavings', name: 'Shavings', emoji: '🪵' },
+            { slug: 'grain', name: 'Grain', emoji: '🌽' }
+        ];
+        var DEFAULT_IMAGES = { hay: '/images/IMG_7197.jpg', shavings: '/images/IMG_8115.jpg', grain: '/images/IMG_9174.jpg' };
+        var EMOJI_PICKS = ['🌾', '🪵', '🌽', '📦', '🧱', '🌱', '🥕', '🧺', '🐴', '🐔', '🐄', '🐐', '🥛', '🪣', '🚜', '🏷️'];
+
+        // Each entry: { slug, name, emoji, image (data URL / URL / null), imageDirty, isNew }
+        var categories = [];
+        var deletedSlugs = [];
+
         // --- Login / Logout ---
         
         var loginBtn = document.getElementById('loginBtn');
@@ -225,8 +226,7 @@
                 sessionStorage.setItem('czechmate_admin', 'true');
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('adminScreen').style.display = 'block';
-                loadProducts();
-                loadCategoryImages();
+                loadAll();
             } else {
                 var alertEl = document.getElementById('loginAlert');
                 alertEl.textContent = 'Incorrect password';
@@ -250,10 +250,15 @@
         if (sessionStorage.getItem('czechmate_admin') === 'true') {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('adminScreen').style.display = 'block';
-            loadProducts();
-            loadCategoryImages();
+            loadAll();
         }
-        
+
+        // Categories first so the product list and dropdown can show category names.
+        async function loadAll() {
+            await loadCategories();
+            await loadProducts();
+        }
+
         // --- Alert ---
         
         function showAlert(msg, type) {
@@ -282,53 +287,345 @@
             }
         });
         
-        // previewCatImage removed — file upload handles previews directly
-        
-        // --- Category Photo Upload ---
-        
-        function setupCatUpload(cat) {
-            var capCat = cat.charAt(0).toUpperCase() + cat.slice(1);
-            var fileInput = document.getElementById('cat' + capCat + 'File');
-            var btn = document.getElementById('cat' + capCat + 'Btn');
-            var preview = document.getElementById('cat' + capCat + 'Preview');
-            var hidden = document.getElementById('cat' + capCat + 'Image');
-            
-            btn.addEventListener('click', function() { fileInput.click(); });
-            preview.addEventListener('click', function() { fileInput.click(); });
-            
-            fileInput.addEventListener('change', function() {
-                var file = fileInput.files[0];
-                if (!file) return;
-                if (file.size > 10 * 1024 * 1024) {
-                    showAlert('Image too large (max 10MB). Try a smaller photo.', 'error');
-                    return;
+        // --- Categories ---
+
+        function slugify(name) {
+            return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'category';
+        }
+
+        function uniqueSlug(base) {
+            var slug = base, n = 2;
+            var taken = {};
+            categories.forEach(function(c) { if (c.slug) taken[c.slug] = true; });
+            taken.other = true; // reserved for products without a category
+            while (taken[slug]) slug = base + '-' + (n++);
+            return slug;
+        }
+
+        function categoryName(slug) {
+            for (var i = 0; i < categories.length; i++) if (categories[i].slug === slug) return categories[i].name;
+            return 'Other';
+        }
+
+        function productCount(slug) {
+            return products.filter(function(p) { return p.category === slug; }).length;
+        }
+
+        async function loadCategories() {
+            categories = DEFAULT_CATEGORIES.map(function(c) { return { slug: c.slug, name: c.name, emoji: c.emoji, image: DEFAULT_IMAGES[c.slug], imageDirty: false, isNew: false }; });
+            deletedSlugs = [];
+            if (db) {
+                try {
+                    var result = await db.from('site_settings').select('key, value').like('key', 'cat%');
+                    if (result.error) throw result.error;
+                    var images = {};
+                    (result.data || []).forEach(function(row) {
+                        if (row.key === 'categories') {
+                            try {
+                                var list = JSON.parse(row.value);
+                                if (Array.isArray(list) && list.length) {
+                                    categories = list.filter(function(c) { return c && c.slug && c.name; }).map(function(c) {
+                                        return { slug: c.slug, name: c.name, emoji: c.emoji || '', image: DEFAULT_IMAGES[c.slug] || null, imageDirty: false, isNew: false };
+                                    });
+                                }
+                            } catch (e) { /* keep defaults */ }
+                        } else {
+                            var m = /^cat_(.+)_image$/.exec(row.key);
+                            if (m && row.value) images[m[1]] = row.value;
+                        }
+                    });
+                    categories.forEach(function(c) { if (images[c.slug]) c.image = images[c.slug]; });
+                } catch (err) {
+                    console.error(err);
+                    showAlert('Could not load categories: ' + err.message, 'error');
                 }
-                // Resize to max 1200px wide for fast page loads
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var img = new Image();
-                    img.onload = function() {
-                        var canvas = document.createElement('canvas');
-                        var maxW = 1200;
-                        var w = img.width;
-                        var h = img.height;
-                        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-                        canvas.width = w;
-                        canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                        var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                        preview.src = dataUrl;
-                        hidden.value = dataUrl;
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
+            }
+            renderCategories();
+            renderCategoryOptions();
+        }
+
+        function renderCategories() {
+            var list = document.getElementById('categoryList');
+            list.innerHTML = '';
+            if (!categories.length) {
+                list.innerHTML = '<div class="empty">No categories yet. Tap "+ Add Category" below.</div>';
+                return;
+            }
+            categories.forEach(function(cat, index) {
+                var row = document.createElement('div');
+                row.className = 'cat-row' + (cat.isNew ? ' is-new' : '');
+
+                // Photo thumbnail (tap to change)
+                var thumb;
+                if (cat.image) {
+                    thumb = document.createElement('img');
+                    thumb.src = cat.image;
+                    thumb.alt = cat.name;
+                } else {
+                    thumb = document.createElement('div');
+                    thumb.textContent = cat.emoji || '🏷️';
+                    thumb.title = 'No photo yet - tap to add one';
+                }
+                thumb.className = 'cat-photo-thumb';
+                row.appendChild(thumb);
+
+                var fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = 'image/*';
+                fileInput.style.display = 'none';
+                row.appendChild(fileInput);
+
+                var fields = document.createElement('div');
+                fields.className = 'cat-fields';
+
+                var emoji = document.createElement('input');
+                emoji.type = 'text';
+                emoji.className = 'cat-emoji';
+                emoji.placeholder = '🌾';
+                emoji.maxLength = 8;
+                emoji.value = cat.emoji || '';
+                emoji.setAttribute('aria-label', 'Symbol');
+                emoji.addEventListener('input', function() {
+                    cat.emoji = emoji.value.trim();
+                    lastEmojiField = emoji;
+                    if (!cat.image) thumb.textContent = cat.emoji || '🏷️';
+                });
+                emoji.addEventListener('focus', function() { lastEmojiField = emoji; });
+                fields.appendChild(emoji);
+
+                var name = document.createElement('input');
+                name.type = 'text';
+                name.placeholder = 'Category name, e.g. Hay';
+                name.value = cat.name || '';
+                name.setAttribute('aria-label', 'Category name');
+                name.addEventListener('input', function() { cat.name = name.value; });
+                fields.appendChild(name);
+
+                var photoBtn = document.createElement('button');
+                photoBtn.type = 'button';
+                photoBtn.className = 'btn btn-sm btn-edit cat-photo-btn';
+                photoBtn.textContent = cat.image ? 'Change Photo' : 'Add Photo';
+                fields.appendChild(photoBtn);
+
+                var count = document.createElement('div');
+                count.className = 'cat-count';
+                var n = cat.isNew ? 0 : productCount(cat.slug);
+                count.textContent = n === 1 ? '1 product in this category' : n + ' products in this category';
+                fields.appendChild(count);
+
+                row.appendChild(fields);
+
+                var pick = function() { fileInput.click(); };
+                thumb.addEventListener('click', pick);
+                photoBtn.addEventListener('click', pick);
+                fileInput.addEventListener('change', function() {
+                    var file = fileInput.files[0];
+                    if (!file) return;
+                    if (file.size > 10 * 1024 * 1024) {
+                        showAlert('Image too large (max 10MB). Try a smaller photo.', 'error');
+                        return;
+                    }
+                    resizeImage(file, function(dataUrl) {
+                        cat.image = dataUrl;
+                        cat.imageDirty = true;
+                        renderCategories();
+                    });
+                });
+
+                var actions = document.createElement('div');
+                actions.className = 'cat-actions';
+
+                var upBtn = document.createElement('button');
+                upBtn.type = 'button';
+                upBtn.className = 'btn btn-sm btn-secondary';
+                upBtn.textContent = '▲';
+                upBtn.title = 'Move up';
+                upBtn.disabled = index === 0;
+                upBtn.addEventListener('click', function() { moveCategory(index, -1); });
+                actions.appendChild(upBtn);
+
+                var downBtn = document.createElement('button');
+                downBtn.type = 'button';
+                downBtn.className = 'btn btn-sm btn-secondary';
+                downBtn.textContent = '▼';
+                downBtn.title = 'Move down';
+                downBtn.disabled = index === categories.length - 1;
+                downBtn.addEventListener('click', function() { moveCategory(index, 1); });
+                actions.appendChild(downBtn);
+
+                var delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-sm btn-danger';
+                delBtn.textContent = 'Delete';
+                delBtn.addEventListener('click', function() { removeCategory(index); });
+                actions.appendChild(delBtn);
+
+                row.appendChild(actions);
+                list.appendChild(row);
             });
         }
-        
-        setupCatUpload('hay');
-        setupCatUpload('shavings');
-        setupCatUpload('grain');
+
+        function moveCategory(index, dir) {
+            var target = index + dir;
+            if (target < 0 || target >= categories.length) return;
+            var tmp = categories[index];
+            categories[index] = categories[target];
+            categories[target] = tmp;
+            renderCategories();
+        }
+
+        function removeCategory(index) {
+            var cat = categories[index];
+            var label = cat.name || 'this category';
+            var n = cat.isNew ? 0 : productCount(cat.slug);
+            var msg = 'Remove "' + label + '" from the website?';
+            if (n) msg += '\n\nThe ' + n + ' product' + (n === 1 ? '' : 's') + ' in it will be moved to "Other" (not deleted).';
+            msg += '\n\nThis happens when you tap Save Categories.';
+            if (!confirm(msg)) return;
+            if (!cat.isNew && cat.slug) deletedSlugs.push(cat.slug);
+            categories.splice(index, 1);
+            renderCategories();
+        }
+
+        document.getElementById('addCatBtn').addEventListener('click', function() {
+            categories.push({ slug: '', name: '', emoji: '', image: null, imageDirty: false, isNew: true });
+            renderCategories();
+            var rows = document.querySelectorAll('#categoryList .cat-row');
+            var last = rows[rows.length - 1];
+            if (last) {
+                last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                var nameField = last.querySelector('input[type="text"]:not(.cat-emoji)');
+                if (nameField) nameField.focus();
+            }
+        });
+
+        // Quick emoji picks: fill the symbol box that was last tapped (or the last row's).
+        var lastEmojiField = null;
+        (function() {
+            var wrap = document.getElementById('emojiPicks');
+            EMOJI_PICKS.forEach(function(e) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = e;
+                b.addEventListener('click', function() {
+                    var field = lastEmojiField;
+                    if (!field || !document.body.contains(field)) {
+                        var all = document.querySelectorAll('#categoryList .cat-emoji');
+                        field = all[all.length - 1];
+                    }
+                    if (!field) { showAlert('Add a category first, then pick its symbol.', 'error'); return; }
+                    field.value = e;
+                    field.dispatchEvent(new Event('input'));
+                    field.focus();
+                });
+                wrap.appendChild(b);
+            });
+        })();
+
+        // Shrink uploaded photos so the homepage stays fast.
+        function resizeImage(file, done) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var img = new Image();
+                img.onload = function() {
+                    var canvas = document.createElement('canvas');
+                    var maxW = 1000;
+                    var w = img.width;
+                    var h = img.height;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    done(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Write one key to site_settings, updating the row if it exists and inserting it otherwise.
+        async function saveSetting(key, value) {
+            var existing = await db.from('site_settings').select('key').eq('key', key).limit(1);
+            if (existing.error) throw existing.error;
+            var result = (existing.data && existing.data.length)
+                ? await db.from('site_settings').update({ value: value }).eq('key', key)
+                : await db.from('site_settings').insert([{ key: key, value: value }]);
+            if (result.error) throw result.error;
+        }
+
+        document.getElementById('saveCatBtn').addEventListener('click', async function() {
+            if (!db) { showAlert('Database not connected', 'error'); return; }
+
+            // Validate names.
+            var seen = {};
+            for (var i = 0; i < categories.length; i++) {
+                var c = categories[i];
+                c.name = (c.name || '').trim();
+                if (!c.name) { showAlert('Every category needs a name.', 'error'); return; }
+                var lower = c.name.toLowerCase();
+                if (lower === 'other') { showAlert('"Other" is already used for products without a category. Pick a different name.', 'error'); return; }
+                if (seen[lower]) { showAlert('You have two categories named "' + c.name + '". Names must be different.', 'error'); return; }
+                seen[lower] = true;
+            }
+            if (!categories.length && !confirm('You are removing every category. The homepage will show no "What We Offer" section. Continue?')) return;
+
+            var btn = document.getElementById('saveCatBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                // New categories get a permanent id based on their name.
+                categories.forEach(function(c) { if (!c.slug) c.slug = uniqueSlug(slugify(c.name)); });
+
+                // Removed categories: move their products to Other, drop their photo.
+                for (var d = 0; d < deletedSlugs.length; d++) {
+                    var slug = deletedSlugs[d];
+                    var moved = await db.from('products').update({ category: 'other' }).eq('category', slug);
+                    if (moved.error) throw moved.error;
+                    var dropped = await db.from('site_settings').delete().eq('key', 'cat_' + slug + '_image');
+                    if (dropped.error) throw dropped.error;
+                }
+
+                // Photos that changed.
+                for (var p = 0; p < categories.length; p++) {
+                    if (categories[p].imageDirty && categories[p].image) {
+                        await saveSetting('cat_' + categories[p].slug + '_image', categories[p].image);
+                    }
+                }
+
+                // The list itself (order, names, symbols).
+                var list = categories.map(function(c) { return { slug: c.slug, name: c.name, emoji: c.emoji || '' }; });
+                await saveSetting('categories', JSON.stringify(list));
+
+                showAlert('Categories saved! Changes are live on the homepage.', 'success');
+                await loadCategories();
+                await loadProducts();
+            } catch (err) {
+                showAlert('Error saving: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Categories';
+            }
+        });
+
+        function renderCategoryOptions() {
+            var select = document.getElementById('category');
+            var current = select.value;
+            select.innerHTML = '';
+            categories.forEach(function(c) {
+                if (c.isNew) return;
+                var opt = document.createElement('option');
+                opt.value = c.slug;
+                opt.textContent = (c.emoji ? c.emoji + ' ' : '') + c.name;
+                select.appendChild(opt);
+            });
+            var other = document.createElement('option');
+            other.value = 'other';
+            other.textContent = 'Other';
+            select.appendChild(other);
+            select.value = current;
+            if (select.selectedIndex < 0) select.selectedIndex = 0;
+        }
 
         // --- Products ---
         
@@ -340,6 +637,7 @@
                 if (result.error) throw result.error;
                 products = result.data || [];
                 renderProducts();
+                renderCategories(); // refresh the "N products" counts
             } catch (err) {
                 console.error(err);
                 list.innerHTML = '<div class="empty">Error loading products: ' + err.message + '</div>';
@@ -366,6 +664,7 @@
                 var info = document.createElement('div');
                 info.className = 'info';
                 info.innerHTML = '<span class="stock-badge ' + (p.in_stock ? 'in' : 'out') + '">' + (p.in_stock ? 'Showing' : 'Hidden') + '</span>' +
+                    '<span class="cat-badge">' + escapeHtml(categoryName(p.category)) + '</span>' +
                     '<h3>' + escapeHtml(p.name) + '</h3>' +
                     '<p>' + escapeHtml(p.description || 'No description') + '</p>' +
                     '<p class="price">' + escapeHtml(p.price || 'Call for pricing') + '</p>';
@@ -406,7 +705,9 @@
         function editProduct(product) {
             document.getElementById('editId').value = product.id;
             document.getElementById('name').value = product.name || '';
-            document.getElementById('category').value = product.category || 'hay';
+            var select = document.getElementById('category');
+            select.value = product.category || 'other';
+            if (select.selectedIndex < 0) select.value = 'other'; // category no longer exists
             document.getElementById('description').value = product.description || '';
             document.getElementById('price').value = product.price || '';
             document.getElementById('imageUrl').value = product.image_url || '';
@@ -428,6 +729,7 @@
             document.getElementById('cancelBtn').style.display = 'none';
             document.getElementById('inStock').checked = true;
             document.getElementById('imagePreview').innerHTML = '';
+            renderCategoryOptions();
         }
         
         document.getElementById('cancelBtn').addEventListener('click', cancelEdit);
@@ -495,56 +797,6 @@
             }
         }
 
-        // --- Category Images ---
-        
-        async function loadCategoryImages() {
-            if (!db) return;
-            try {
-                var result = await db.from('site_settings').select('key, value').in('key', ['cat_hay_image', 'cat_shavings_image', 'cat_grain_image']);
-                if (!result.data) return;
-                result.data.forEach(function(s) {
-                    if (s.key === 'cat_hay_image' && s.value) {
-                        document.getElementById('catHayImage').value = s.value;
-                        document.getElementById('catHayPreview').src = s.value;
-                    }
-                    if (s.key === 'cat_shavings_image' && s.value) {
-                        document.getElementById('catShavingsImage').value = s.value;
-                        document.getElementById('catShavingsPreview').src = s.value;
-                    }
-                    if (s.key === 'cat_grain_image' && s.value) {
-                        document.getElementById('catGrainImage').value = s.value;
-                        document.getElementById('catGrainPreview').src = s.value;
-                    }
-                });
-            } catch (e) { /* table may not exist yet */ }
-        }
-        
-        document.getElementById('saveCatBtn').addEventListener('click', async function() {
-            if (!db) { showAlert('Database not connected', 'error'); return; }
-            var btn = document.getElementById('saveCatBtn');
-            btn.disabled = true;
-            btn.textContent = 'Saving...';
-            
-            var settings = [
-                { key: 'cat_hay_image', value: document.getElementById('catHayImage').value },
-                { key: 'cat_shavings_image', value: document.getElementById('catShavingsImage').value },
-                { key: 'cat_grain_image', value: document.getElementById('catGrainImage').value }
-            ];
-            try {
-                for (var i = 0; i < settings.length; i++) {
-                    if (settings[i].value) {
-                        await db.from('site_settings').update({ value: settings[i].value }).eq('key', settings[i].key);
-                    }
-                }
-                showAlert('Category photos saved! Changes are live on the homepage.', 'success');
-            } catch (err) {
-                showAlert('Error saving: ' + err.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Save Category Photos';
-            }
-        });
-        
     })();
     </script>
 </body>
